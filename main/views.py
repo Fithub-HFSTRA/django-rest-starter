@@ -6,6 +6,8 @@ from rest_framework import status
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from openai import OpenAI
+import os
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -47,6 +49,51 @@ class LogoutView(APIView):
 class MeAPIView(APIView):
     permission_classes = [IsAuthenticated]
     
-    def get(self, request):
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data)
+    def post(self, request):
+        # Get the message from the request data
+        message = request.data.get("message")
+        if not message:
+            return Response(
+                {"error": "Message is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Set up Hugging Face API client
+        client = OpenAI(
+            base_url="https://g0i40fyfxhj511nn.us-east-1.aws.endpoints.huggingface.cloud/v1/", 
+            api_key=os.environ["HGKEY"]  # Replace with your actual API key
+        )
+
+        try:
+            # Create a chat completion request
+            chat_completion = client.chat.completions.create(
+                model="tgi",
+                messages=[
+                    {
+                        "role": os.environ["HGKEY"],
+                        "content": message
+                    }
+                ],
+                top_p=0.5,
+                temperature=0.8,
+                max_tokens=500,
+                stream=True,
+                seed=None,
+                frequency_penalty=None,
+                presence_penalty=None
+            )
+
+            # Fetch the response from Hugging Face API
+            hf_response = ""
+            for chat_message in chat_completion:
+                hf_response += chat_message.choices[0].delta.content
+
+            # Return the response from the Hugging Face API
+            return Response({"hf_response": hf_response}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            # Handle exceptions and return an error response
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
