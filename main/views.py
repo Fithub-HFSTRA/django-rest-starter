@@ -17,7 +17,8 @@ class UserSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
-
+    
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
     permission_classes = [AllowAny]
     
@@ -30,10 +31,13 @@ class LoginView(APIView):
             )
             if user:
                 login(request, user)
-                return Response({
+                response = Response({
                     'user': UserSerializer(user).data,
                     'message': 'Login successful'
                 })
+                response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+                response["Access-Control-Allow-Credentials"] = "true"
+                return response
             else:
                 return Response(
                     {'error': 'Invalid credentials'}, 
