@@ -28,7 +28,6 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.up.railway.app", 
     "http://localhost:3000",
     # Add more allowed origins if needed
-]
     # NOTE: Place your custom url here if any
 ]
 
