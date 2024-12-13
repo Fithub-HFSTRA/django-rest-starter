@@ -4,11 +4,7 @@
         "builder": "NIXPACKS"
     },
     "deploy": {
-        "startCommand": "export DJANGO_SUPERUSER_PASSWORD=three && \
-python manage.py migrate && \
-python manage.py collectstatic --noinput && \
-python manage.py createsuperuser --username test1 --email eguo3@pride.hhofstra.edu --noinput && \
-gunicorn --timeout 500 main.wsgi",
+        "startCommand": "export DJANGO_SUPERUSER_PASSWORD=three && python manage.py migrate && python manage.py collectstatic --noinput && python manage.py createsuperuser --username test1 --email eguo3@pride.hhofstra.edu --noinput && gunicorn --timeout 500 main.wsgi",
         "restartPolicyType": "NEVER",
         "restartPolicyMaxRetries": 10
     }
