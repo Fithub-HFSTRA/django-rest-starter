@@ -58,7 +58,7 @@ class LogoutView(APIView):
         return Response({'message': 'Logout successful'})
 
 class MeAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def post(self, request):
         # Get the message from the request data
