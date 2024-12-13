@@ -4,7 +4,7 @@
         "builder": "NIXPACKS"
     },
     "deploy": {
-        "startCommand": "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn --timeout 500 main.wsgi",
+        "startCommand": "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn --timeout 500 main.wsgi && DJANGO_SUPERUSER_PASSWORD=three && python manage.py createsuperuser --username test --email eguo3@pride.hhofstra.edu --noinput",
         "restartPolicyType": "NEVER",
         "restartPolicyMaxRetries": 10
     }
