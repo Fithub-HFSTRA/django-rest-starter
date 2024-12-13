@@ -22,6 +22,14 @@ class LoginSerializer(serializers.Serializer):
 class LoginView(APIView):
     permission_classes = [AllowAny]
     
+    def options(self, request, *args, **kwargs):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        response["Access-Control-Allow-Headers"] = "Content-Type"
+        response["Access-Control-Allow-Credentials"] = "true"
+        return response
+    
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
