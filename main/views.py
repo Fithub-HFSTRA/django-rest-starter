@@ -60,7 +60,7 @@ class MeAPIView(APIView):
         
         # Set up Hugging Face API client
         client = OpenAI(
-            base_url="https://g0i40fyfxhj511nn.us-east-1.aws.endpoints.huggingface.cloud/v1/", 
+            base_url=os.environ["HGLINK"], 
             api_key=os.environ["HGKEY"]  # Replace with your actual API key
         )
 
