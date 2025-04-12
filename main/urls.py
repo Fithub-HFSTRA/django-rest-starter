@@ -15,14 +15,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from .views import create_prompt, get_modified_prompt
+from .views import CreatePromptView, TopPromptView
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     # Authentication endpoints
     # Protected endpoint
-    path('api/me/', MeAPIView.as_view(), name='me'),
-    path('api/prompt/', create_prompt, name='create_prompt'),
-    path('api/top_prompt/', get_modified_prompt, name='get_modified_prompt'),
+    path('api/prompt/', CreatePromptView.as_view(), name='create_prompt'),
+    path('api/top_prompt/', TopPromptView.as_view(), name='top_prompt'),
 ]
 
