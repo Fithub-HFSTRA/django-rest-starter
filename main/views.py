@@ -6,6 +6,8 @@ from rest_framework import status
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from django.db.models import Sum
+from .models import UserPrompt
 from openai import OpenAI
 import os
 
@@ -57,54 +59,71 @@ class LogoutView(APIView):
         logout(request)
         return Response({'message': 'Logout successful'})
 
-class MeAPIView(APIView):
+
+class CreatePromptView(APIView):
+    """
+    Accepts a POST request with JSON payload containing:
+      - user_id: The user identifier.
+      - prompt: The text prompt.
+      - watch_time: An integer representing the watch time.
+    Saves the record into the database.
+    """
     permission_classes = [AllowAny]
-    
+
     def post(self, request):
-        # Get the message from the request data
-        message = request.data.get("message")
-        if not message:
+        user_id = request.data.get('user_id')
+        prompt_text = request.data.get('prompt')
+        watch_time = request.data.get('watch_time')
+
+        if not (user_id and prompt_text and watch_time is not None):
             return Response(
-                {"error": "Message is required."},
+                {'error': 'Missing required fields: user_id, prompt, and watch_time are required.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Set up Hugging Face API client
-        client = OpenAI(
-            base_url=os.environ["HGLINK"], 
-            api_key=os.environ["HGKEY"]  # Replace with your actual API key
-        )
-
         try:
-            # Create a chat completion request
-            chat_completion = client.chat.completions.create(
-                model="tgi",
-                messages=[
-                    {
-                        "role": os.environ["HGKEY"],
-                        "content": message
-                    }
-                ],
-                top_p=0.5,
-                temperature=0.8,
-                max_tokens=500,
-                stream=True,
-                seed=None,
-                frequency_penalty=None,
-                presence_penalty=None
-            )
-
-            # Fetch the response from Hugging Face API
-            hf_response = ""
-            for chat_message in chat_completion:
-                hf_response += chat_message.choices[0].delta.content
-
-            # Return the response from the Hugging Face API
-            return Response({"hf_response": hf_response}, status=status.HTTP_200_OK)
-
+            entry = UserPrompt(user_id=user_id, prompt=prompt_text, watch_time=watch_time)
+            entry.save()
+            return Response({'message': 'Prompt saved successfully.'}, status=status.HTTP_201_CREATED)
         except Exception as e:
-            # Handle exceptions and return an error response
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TopPromptView(APIView):
+    """
+    Accepts a GET request to:
+      - Aggregate total watch_time per user.
+      - Find the user with the highest cumulative watch time.
+      - Retrieve the latest prompt from that user.
+      - Modify the prompt using a simple placeholder custom function.
+      - Return the top user information along with the modified prompt.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        # Aggregate total watch time per user and sort descending
+        aggregated = UserPrompt.objects.values('user_id') \
+            .annotate(total_watch_time=Sum('watch_time')) \
+            .order_by('-total_watch_time')
+
+        if not aggregated:
+            return Response({'error': 'No prompt data available.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Determine the user with the highest cumulative watch time
+        top_user_id = aggregated[0]['user_id']
+        total_watch_time = aggregated[0]['total_watch_time']
+
+        # Retrieve the most recent prompt for this top user
+        latest_entry = UserPrompt.objects.filter(user_id=top_user_id).order_by('-timestamp').first()
+        if not latest_entry:
+            return Response({'error': 'No prompt found for the top user.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Placeholder custom function: Simply prepend "Modified: " to the original prompt
+        modified_prompt = "Modified: " + latest_entry.prompt
+
+        response_data = {
+            'top_user': top_user_id,
+            'total_watch_time': total_watch_time,
+            'modified_prompt': modified_prompt
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
